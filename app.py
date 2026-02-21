@@ -1,10 +1,20 @@
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import random
+import os
 from datetime import datetime
+from dotenv import load_dotenv
 
+load_dotenv()
 app = Flask(__name__)
 CORS(app)  # อนุญาตให้ HTML เรียก API จากต่าง origin
+
+# EmailJS API - ใส่ค่าจาก dashboard.emailjs.com
+# วิธีที่ 1: ตั้งค่า environment variables (แนะนำสำหรับ production)
+# วิธีที่ 2: แก้ค่าตรงนี้สำหรับ development
+EMAILJS_PUBLIC_KEY = os.environ.get('EMAILJS_PUBLIC_KEY', '')  # เช่น 'abc123xyz'
+EMAILJS_SERVICE_ID = os.environ.get('EMAILJS_SERVICE_ID', '')  # เช่น 'service_xxx'
+EMAILJS_TEMPLATE_ID = os.environ.get('EMAILJS_TEMPLATE_ID', '')  # เช่น 'template_xxx'
 
 # ฟังก์ชันจำลองข้อมูล PM2.5 (ในอนาคตสามารถเชื่อมต่อกับ API จริงได้)
 def get_pm25_level(pm25_value):
@@ -21,7 +31,11 @@ def get_pm25_level(pm25_value):
 # Route สำหรับแสดงหน้า HTML
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html',
+        emailjs_public_key=EMAILJS_PUBLIC_KEY,
+        emailjs_service_id=EMAILJS_SERVICE_ID,
+        emailjs_template_id=EMAILJS_TEMPLATE_ID
+    )
 
 # API endpoint สำหรับข้อมูล PM2.5
 @app.route('/api/pm25', methods=['GET'])
