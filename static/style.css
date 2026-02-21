@@ -1,0 +1,537 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #fafafa;
+    min-height: 100vh;
+}
+
+.main-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+/* Left Column */
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* PM2.5 Card */
+.pm25-card {
+    background: #f0f4c3;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.pm25-card.good {
+    background: #e8f5e9;
+}
+
+.pm25-card.moderate {
+    background: #f0f4c3;
+}
+
+.pm25-card.unhealthy {
+    background: #ffe0b2;
+}
+
+.pm25-card.very-unhealthy {
+    background: #ffcdd2;
+}
+
+.location-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.location-icon {
+    flex-shrink: 0;
+}
+
+.location-name {
+    font-weight: bold;
+    font-size: 18px;
+    color: #333;
+}
+
+.pm25-main-display {
+    margin-bottom: 20px;
+}
+
+.pm25-number-container {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pm25-number {
+    font-size: 64px;
+    font-weight: bold;
+    color: #333;
+    line-height: 1;
+    margin: 0;
+}
+
+.pm25-unit {
+    font-size: 24px;
+    color: #666;
+    font-weight: normal;
+}
+
+.pm25-badge {
+    background: #ffcdd2;
+    color: #333;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.pm25-badge.good {
+    background: #4caf50;
+    color: white;
+}
+
+.pm25-badge.moderate {
+    background: #ff9800;
+    color: white;
+}
+
+.pm25-badge.unhealthy {
+    background: #ff5722;
+    color: white;
+}
+
+.pm25-badge.very-unhealthy {
+    background: #ffcdd2;
+    color: #333;
+}
+
+.pm25-info-box {
+    background: #e3f2fd;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 12px;
+}
+
+.info-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.pm25-description {
+    margin: 0;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.6;
+}
+
+.last-updated {
+    font-size: 12px;
+    color: #999;
+    text-align: right;
+}
+
+/* Notification Card */
+.notification-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+    font-weight: 600;
+}
+
+.card-description {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.email-form {
+    margin-bottom: 20px;
+}
+
+.email-form label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.email-form input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+}
+
+.email-form input:focus {
+    outline: none;
+    border-color: #2196F3;
+}
+
+.btn-confirm {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s;
+}
+
+.btn-confirm:hover {
+    background: #1976D2;
+}
+
+.btn-update {
+    background: #9c27b0;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    transition: background 0.2s;
+}
+
+.btn-update:hover {
+    background: #7b1fa2;
+}
+
+/* Toggle Switch */
+.auto-update-toggle {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #2196F3;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.toggle-label {
+    flex: 1;
+}
+
+.toggle-title {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.toggle-description {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Right Column - Map */
+.right-column {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    min-height: 600px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+}
+
+#map-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    min-height: 600px;
+    border-radius: 12px;
+}
+
+.map-info {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
+
+.map-info-content {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.map-location-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+.map-pm25-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.map-pm25-unit {
+    font-size: 14px;
+    color: #666;
+}
+
+.custom-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.location-error {
+    text-align: center;
+    padding: 40px;
+}
+
+.error-message {
+    color: #d32f2f;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.error-message-th {
+    color: #d32f2f;
+    font-size: 14px;
+}
+
+/* PM2.5 Display Styles */
+.pm25-display {
+    text-align: center;
+    padding: 40px;
+    border-radius: 10px;
+    margin: 20px 0;
+    transition: all 0.3s ease;
+}
+
+.pm25-display.good {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+}
+
+.pm25-display.moderate {
+    background: linear-gradient(135deg, #FFC107 0%, #ffb300 100%);
+    color: #333;
+}
+
+.pm25-display.unhealthy {
+    background: linear-gradient(135deg, #FF9800 0%, #f57c00 100%);
+    color: white;
+}
+
+.pm25-display.very-unhealthy {
+    background: linear-gradient(135deg, #F44336 0%, #d32f2f 100%);
+    color: white;
+}
+
+.pm25-value {
+    font-size: 72px;
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+.pm25-unit {
+    font-size: 36px;
+    font-weight: normal;
+}
+
+.pm25-level {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.pm25-description {
+    font-size: 18px;
+    margin: 10px 0;
+    opacity: 0.9;
+}
+
+.pm25-timestamp {
+    font-size: 14px;
+    margin-top: 20px;
+    opacity: 0.8;
+}
+
+.loading {
+    font-size: 20px;
+    color: #666;
+    padding: 40px;
+}
+
+.controls {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.auto-refresh {
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 5px;
+}
+
+.auto-refresh label {
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.info-box {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+
+.info-box h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.info-box ul {
+    list-style: none;
+    padding: 0;
+}
+
+.info-box li {
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.info-box li:last-child {
+    border-bottom: none;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .main-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .right-column {
+        min-height: 400px;
+    }
+    
+    #map {
+        min-height: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        padding: 0 10px;
+        margin: 10px auto;
+    }
+    
+    .pm25-card,
+    .notification-card {
+        padding: 20px;
+    }
+    
+    .pm25-number {
+        font-size: 48px;
+    }
+    
+    .pm25-unit {
+        font-size: 20px;
+    }
+}
+

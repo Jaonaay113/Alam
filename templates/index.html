@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <title>ตรวจสอบค่า PM2.5</title>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Left Column -->
+        <div class="left-column">
+            <!-- PM2.5 Display Card -->
+            <div class="pm25-card">
+                <div class="location-header">
+                    <svg class="location-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 0C5.2 0 3 2.2 3 5c0 3.5 5 11 5 11s5-7.5 5-11c0-2.8-2.2-5-5-5zm0 7.5c-1.4 0-2.5-1.1-2.5-2.5S6.6 2.5 8 2.5s2.5 1.1 2.5 2.5S9.4 7.5 8 7.5z" fill="#d32f2f"/>
+                    </svg>
+                    <span class="location-name" id="locationName">BANGKOK</span>
+                </div>
+                
+                <div class="pm25-main-display">
+                    <div class="pm25-number-container">
+                        <span class="pm25-number" id="pm25Value">101</span>
+                        <span class="pm25-unit">µg/m³</span>
+                        <span class="pm25-badge" id="pm25Badge">Moderate</span>
+                    </div>
+                </div>
+                
+                <div class="pm25-info-box">
+                    <svg class="info-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="8" cy="8" r="7" stroke="#2196F3" stroke-width="1.5" fill="none"/>
+                        <path d="M8 4v4M8 11h.01" stroke="#2196F3" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    <p class="pm25-description">
+                        PM2.5 อนุภาคขนาดเล็กที่มีเส้นผ่านศูนย์กลาง 2.5 ไมโครเมตรหรือน้อยกว่า อนุภาคเหล่านี้สามารถแทรกซึมลึกเข้าไปในปอดและส่งผลกระทบต่อสุขภาพได้
+                    </p>
+                </div>
+                
+                <div class="last-updated">
+                    Last updated: <span id="lastUpdated">15:40:39</span>
+                </div>
+            </div>
+            
+            <!-- Notification Form Card -->
+            <div class="notification-card">
+                <div class="card-header">
+                    <svg class="info-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="8" cy="8" r="7" stroke="#2196F3" stroke-width="1.5" fill="none"/>
+                        <path d="M8 4v4M8 11h.01" stroke="#2196F3" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    <h3>รับการแจ้งเตือนคุณภาพอากาศ</h3>
+                </div>
+                
+                <p class="card-description">
+                    กรอกอีเมลเพื่อรับการแจ้งเตือนคุณภาพอากาศในพื้นที่ของคุณ ระบบจะอัพเดทอัตโนมัติทุก 30 วินาที
+                </p>
+                
+                <form class="email-form" onsubmit="handleEmailSubmit(event)">
+                    <label for="emailInput">อีเมล</label>
+                    <input type="email" id="emailInput" placeholder="กรอกอีเมลของคุณ" required>
+                    <button type="submit" class="btn-confirm">ยืนยัน</button>
+                </form>
+                
+                <button class="btn-update" onclick="refreshPM25()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 2v4M8 10v4M2 8h4M10 8h4M3.515 3.515l2.828 2.828M9.657 9.657l2.828 2.828M3.515 12.485l2.828-2.828M9.657 6.343l2.828-2.828" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    อัพเดทข้อมูลอากาศปัจจุบัน
+                </button>
+                
+                <div class="auto-update-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoUpdateToggle" checked onchange="toggleAutoRefresh()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <div class="toggle-label">
+                        <span class="toggle-title">การอัพเดทอัตโนมัติ</span>
+                        <span class="toggle-description">เปิดเพื่ออัพเดทข้อมูลคุณภาพอากาศอัตโนมัติทุก 30 วินาที</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div class="right-column">
+            <div id="map-container">
+                <div id="map"></div>
+                <div class="map-info">
+                    <div class="map-info-content">
+                        <span class="map-location-name" id="mapLocationName">BANGKOK</span>
+                        <span class="map-pm25-value" id="mapPm25Value">-</span>
+                        <span class="map-pm25-unit">µg/m³</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        let currentLocation = 'BANGKOK';
+        let map = null;
+        let marker = null;
+        let userLocation = { lat: 13.7563, lng: 100.5018 }; // กรุงเทพฯ เป็นค่าเริ่มต้น
+
+        // ฟังก์ชันแปลง level จากภาษาไทยเป็นภาษาอังกฤษ
+        function translateLevel(thLevel) {
+            const levelMap = {
+                'ดี': 'Good',
+                'ปานกลาง': 'Moderate',
+                'ไม่ดีต่อสุขภาพ': 'Unhealthy',
+                'ไม่ดี': 'Very Unhealthy'
+            };
+            return levelMap[thLevel] || thLevel;
+        }
+
+        // ฟังก์ชันได้สีตามค่า PM2.5
+        function getPm25Color(pm25) {
+            if (pm25 <= 25) return '#4caf50';
+            if (pm25 <= 50) return '#ff9800';
+            if (pm25 <= 100) return '#ff5722';
+            return '#f44336';
+        }
+
+        // ฟังก์ชันสร้างแผนที่
+        function initMap() {
+            // สร้างแผนที่
+            map = L.map('map').setView([userLocation.lat, userLocation.lng], 13);
+            
+            // เพิ่ม tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // พยายามดึงตำแหน่งผู้ใช้
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        map.setView([userLocation.lat, userLocation.lng], 13);
+                        updateMapMarker();
+                    },
+                    function(error) {
+                        console.log('ไม่สามารถดึงตำแหน่งได้:', error);
+                        updateMapMarker();
+                    }
+                );
+            } else {
+                updateMapMarker();
+            }
+        }
+
+        // ฟังก์ชันอัพเดท marker บนแผนที่
+        function updateMapMarker() {
+            if (!map) return;
+
+            if (marker) {
+                map.removeLayer(marker);
+            }
+
+            const pm25Value = document.getElementById('pm25Value').textContent;
+            const pm25Num = parseInt(pm25Value) || 0;
+            const color = getPm25Color(pm25Num);
+            const badgeText = document.getElementById('pm25Badge').textContent;
+
+            // สร้าง custom icon
+            const customIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `
+                    <div style="background-color: ${color}; width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">
+                        ${pm25Num}
+                    </div>
+                `,
+                iconSize: [50, 50],
+                iconAnchor: [25, 25]
+            });
+
+            marker = L.marker([userLocation.lat, userLocation.lng], { icon: customIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <div style="text-align: center; padding: 8px;">
+                        <strong style="font-size: 16px;">${currentLocation}</strong><br>
+                        <div style="font-size: 24px; font-weight: bold; margin: 8px 0;">${pm25Value} µg/m³</div>
+                        <div style="color: ${color}; font-weight: bold;">${badgeText}</div>
+                    </div>
+                `);
+        }
+
+        // ฟังก์ชันดึงข้อมูล PM2.5
+        async function refreshPM25() {
+            try {
+                const response = await fetch('/api/pm25');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // อัพเดทค่า PM2.5
+                    document.getElementById('pm25Value').textContent = data.pm25;
+                    document.getElementById('mapPm25Value').textContent = data.pm25;
+                    
+                    // อัพเดท badge (แปลงเป็นภาษาอังกฤษ)
+                    const badge = document.getElementById('pm25Badge');
+                    badge.textContent = translateLevel(data.level);
+                    badge.className = 'pm25-badge ' + data.color;
+                    
+                    // อัพเดทเวลา
+                    const timeStr = data.timestamp.split(' ')[1] || data.timestamp;
+                    document.getElementById('lastUpdated').textContent = timeStr;
+                    
+                    // อัพเดทสีการ์ด
+                    const card = document.querySelector('.pm25-card');
+                    card.className = 'pm25-card ' + data.color;
+                    
+                    // อัพเดทชื่อสถานที่บนแผนที่
+                    document.getElementById('mapLocationName').textContent = currentLocation;
+                    
+                    // อัพเดท marker บนแผนที่
+                    if (map) {
+                        updateMapMarker();
+                    }
+                } else {
+                    throw new Error('ไม่สามารถดึงข้อมูลได้');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+
+        // ฟังก์ชันเปิด/ปิด auto refresh
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoUpdateToggle');
+            
+            if (checkbox.checked) {
+                autoRefreshInterval = setInterval(refreshPM25, 30000);
+            } else {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+            }
+        }
+
+        // ฟังก์ชันจัดการการส่งอีเมล
+        function handleEmailSubmit(event) {
+            event.preventDefault();
+            const email = document.getElementById('emailInput').value;
+            alert('ขอบคุณ! เราจะส่งการแจ้งเตือนไปที่ ' + email);
+            document.getElementById('emailInput').value = '';
+        }
+
+        // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
+        window.onload = function() {
+            initMap();
+            refreshPM25();
+            // เปิด auto refresh โดยอัตโนมัติ
+            if (document.getElementById('autoUpdateToggle').checked) {
+                toggleAutoRefresh();
+            }
+        };
+    </script>
+</body>
+</html>
