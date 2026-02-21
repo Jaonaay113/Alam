@@ -10,6 +10,7 @@
     <title>ตรวจสอบค่า PM2.5</title>
 </head>
 <body>
+    <div class="web-alert-banner" id="webAlertBanner" style="display: none;"></div>
     <div class="main-container">
         <!-- Left Column -->
         <div class="left-column">
@@ -59,11 +60,16 @@
                     กรอกอีเมลเพื่อรับการแจ้งเตือนคุณภาพอากาศในพื้นที่ของคุณ ระบบจะอัพเดทอัตโนมัติทุก 30 วินาที
                 </p>
                 
-                <form class="email-form" onsubmit="handleEmailSubmit(event)">
+                <form class="email-form" id="emailFormSection" onsubmit="handleEmailSubmit(event)">
                     <label for="emailInput">อีเมล</label>
                     <input type="email" id="emailInput" placeholder="กรอกอีเมลของคุณ" required>
                     <button type="submit" class="btn-confirm">ยืนยัน</button>
                 </form>
+                <div class="email-registered" id="emailRegisteredSection" style="display: none;">
+                    <div class="registered-label">อีเมลที่ลงทะเบียน</div>
+                    <div class="registered-email" id="registeredEmailDisplay"></div>
+                    <button type="button" class="btn-change-email" onclick="changeEmail()">เปลี่ยนอีเมล</button>
+                </div>
                 
                 <button class="btn-update" onclick="refreshPM25()">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -100,6 +106,14 @@
         </div>
     </div>
 
+    <!-- Modal แจ้งเตือนกลางหน้าจอ -->
+    <div class="alert-modal-overlay" id="alertModalOverlay" style="display: none;">
+        <div class="alert-modal">
+            <div class="alert-modal-content" id="alertModalContent"></div>
+            <button class="alert-modal-btn" onclick="closeAlertModal()">ตกลง</button>
+        </div>
+    </div>
+
     <script>
         // EmailJS config จาก server (ซ่อนจาก user)
         const EMAILJS_CONFIG = {
@@ -113,6 +127,46 @@
         let map = null;
         let marker = null;
         let userLocation = { lat: 13.7563, lng: 100.5018 }; // กรุงเทพฯ เป็นค่าเริ่มต้น
+        let registeredEmail = localStorage.getItem('pm25_notify_email') || '';
+        let lastEmailAlertAt = 0;
+        let lastBannerAlertColor = '';
+        const EMAIL_ALERT_COOLDOWN = 5 * 60 * 1000; // 5 นาที
+
+        // เล่นเสียงแจ้งเตือน
+        function playAlertSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 800;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.5);
+            } catch (e) {}
+        }
+
+        // แสดง modal แจ้งเตือนกลางหน้าจอ + เสียง
+        function showAlert(message) {
+            document.getElementById('alertModalContent').textContent = message;
+            document.getElementById('alertModalOverlay').style.display = 'flex';
+            playAlertSound();
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alertModalOverlay').style.display = 'none';
+        }
+
+        // กด overlay ปิด modal (รอ DOM พร้อม)
+        (function() {
+            const overlay = document.getElementById('alertModalOverlay');
+            if (overlay) overlay.addEventListener('click', function(e) {
+                if (e.target === this) closeAlertModal();
+            });
+        })();
 
         // ฟังก์ชันแปลง level จากภาษาไทยเป็นภาษาอังกฤษ
         function translateLevel(thLevel) {
@@ -232,6 +286,52 @@
                 `);
         }
 
+        // ฟังก์ชันแสดง/ซ่อนแจ้งเตือนเว็บ (ระดับสีเหลืองขึ้นไป)
+        function updateWebAlert(pm25, level, color) {
+            const banner = document.getElementById('webAlertBanner');
+            const isAlert = color !== 'good'; // moderate, unhealthy, very-unhealthy
+            
+            if (isAlert) {
+                const levelText = { moderate: 'ปานกลาง', unhealthy: 'ไม่ดีต่อสุขภาพ', 'very-unhealthy': 'ไม่ดี' };
+                const msg = `⚠️ แจ้งเตือนคุณภาพอากาศ: PM2.5 = ${pm25} µg/m³ (${levelText[color] || level}) - กรุณาระวังสุขภาพ`;
+                banner.textContent = msg;
+                banner.className = 'web-alert-banner alert-' + color;
+                banner.style.display = 'block';
+                document.body.classList.add('has-alert', 'alert-' + color);
+                if (lastBannerAlertColor !== color) {
+                    lastBannerAlertColor = color;
+                    playAlertSound();
+                }
+            } else {
+                banner.style.display = 'none';
+                lastBannerAlertColor = '';
+                document.body.classList.remove('has-alert', 'alert-moderate', 'alert-unhealthy', 'alert-very-unhealthy');
+            }
+        }
+
+        // ฟังก์ชันส่งอีเมลแจ้งเตือน
+        async function sendAlertEmail(pm25, level, color) {
+            if (!registeredEmail) return;
+            const { publicKey, serviceId, templateId } = EMAILJS_CONFIG;
+            if (!publicKey || !serviceId || !templateId || typeof emailjs === 'undefined') return;
+            
+            const now = Date.now();
+            if (now - lastEmailAlertAt < EMAIL_ALERT_COOLDOWN) return;
+            lastEmailAlertAt = now;
+            
+            try {
+                await emailjs.send(serviceId, templateId, {
+                    to_email: registeredEmail,
+                    pm25_value: pm25,
+                    pm25_level: translateLevel(level),
+                    location: currentLocation,
+                    timestamp: new Date().toLocaleString('th-TH')
+                });
+            } catch (err) {
+                console.error('Email alert error:', err);
+            }
+        }
+
         // ฟังก์ชันดึงข้อมูล PM2.5
         async function refreshPM25() {
             try {
@@ -263,12 +363,20 @@
                     if (map) {
                         updateMapMarker();
                     }
+                    
+                    // แจ้งเตือนเว็บ + อีเมล เมื่อระดับสีเหลืองขึ้นไป
+                    if (data.color !== 'good') {
+                        updateWebAlert(data.pm25, data.level, data.color);
+                        sendAlertEmail(data.pm25, data.level, data.color);
+                    } else {
+                        updateWebAlert(data.pm25, data.level, data.color);
+                    }
                 } else {
                     throw new Error('ไม่สามารถดึงข้อมูลได้');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('เกิดข้อผิดพลาด: ' + error.message);
+                showAlert('เกิดข้อผิดพลาด: ' + error.message);
             }
         }
 
@@ -286,42 +394,41 @@
             }
         }
 
-        // ฟังก์ชันจัดการการส่งอีเมล
+        // ฟังก์ชันจัดการการลงทะเบียนอีเมล
         async function handleEmailSubmit(event) {
             event.preventDefault();
-            const email = document.getElementById('emailInput').value;
+            const email = document.getElementById('emailInput').value.trim();
+            if (!email) return;
             
-            const { publicKey, serviceId, templateId } = EMAILJS_CONFIG;
-            if (!publicKey || !serviceId || !templateId) {
-                alert('ระบบส่งอีเมลยังไม่ได้ตั้งค่า กรุณาติดต่อผู้ดูแลระบบ');
-                return;
-            }
+            registeredEmail = email;
+            localStorage.setItem('pm25_notify_email', email);
             
-            // ตรวจสอบว่า EmailJS ถูก initialize หรือไม่
-            if (typeof emailjs === 'undefined') {
-                alert('ไม่สามารถโหลด EmailJS SDK ได้');
-                return;
-            }
+            document.getElementById('registeredEmailDisplay').textContent = email;
+            document.getElementById('emailFormSection').style.display = 'none';
+            document.getElementById('emailRegisteredSection').style.display = 'block';
+            document.getElementById('emailInput').value = '';
             
-            try {
-                // ส่งอีเมลผ่าน EmailJS
-                const pm25Value = document.getElementById('pm25Value').textContent;
-                const pm25Badge = document.getElementById('pm25Badge').textContent;
-                const location = currentLocation;
-                
-                const response = await emailjs.send(serviceId, templateId, {
-                    to_email: email,
-                    pm25_value: pm25Value,
-                    pm25_level: pm25Badge,
-                    location: location,
-                    timestamp: new Date().toLocaleString('th-TH')
-                });
-                
-                alert('ส่งอีเมลแจ้งเตือนเรียบร้อยแล้ว! ตรวจสอบอีเมลของคุณ');
-                document.getElementById('emailInput').value = '';
-            } catch (error) {
-                console.error('EmailJS Error:', error);
-                alert('เกิดข้อผิดพลาดในการส่งอีเมล: ' + error.text);
+            showAlert('ลงทะเบียนอีเมลเรียบร้อยแล้ว! คุณจะได้รับการแจ้งเตือนเมื่อ PM2.5 ระดับสีเหลืองขึ้นไป');
+        }
+
+        // ฟังก์ชันเปลี่ยนอีเมล
+        function changeEmail() {
+            registeredEmail = '';
+            localStorage.removeItem('pm25_notify_email');
+            document.getElementById('emailFormSection').style.display = 'block';
+            document.getElementById('emailRegisteredSection').style.display = 'none';
+            document.getElementById('emailInput').value = '';
+        }
+
+        // แสดง UI ตามสถานะอีเมลที่บันทึกไว้
+        function updateEmailUI() {
+            if (registeredEmail) {
+                document.getElementById('registeredEmailDisplay').textContent = registeredEmail;
+                document.getElementById('emailFormSection').style.display = 'none';
+                document.getElementById('emailRegisteredSection').style.display = 'block';
+            } else {
+                document.getElementById('emailFormSection').style.display = 'block';
+                document.getElementById('emailRegisteredSection').style.display = 'none';
             }
         }
 
@@ -330,6 +437,7 @@
             if (EMAILJS_CONFIG.publicKey && typeof emailjs !== 'undefined') {
                 emailjs.init(EMAILJS_CONFIG.publicKey);
             }
+            updateEmailUI();
             initMap();
             refreshPM25();
             // เปิด auto refresh โดยอัตโนมัติ

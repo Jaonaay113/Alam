@@ -12,9 +12,9 @@ CORS(app)  # อนุญาตให้ HTML เรียก API จากต�
 # EmailJS API - ใส่ค่าจาก dashboard.emailjs.com
 # วิธีที่ 1: ตั้งค่า environment variables (แนะนำสำหรับ production)
 # วิธีที่ 2: แก้ค่าตรงนี้สำหรับ development
-EMAILJS_PUBLIC_KEY = os.environ.get('EMAILJS_PUBLIC_KEY', '')  # เช่น 'abc123xyz'
-EMAILJS_SERVICE_ID = os.environ.get('EMAILJS_SERVICE_ID', '')  # เช่น 'service_xxx'
-EMAILJS_TEMPLATE_ID = os.environ.get('EMAILJS_TEMPLATE_ID', '')  # เช่น 'template_xxx'
+EMAILJS_PUBLIC_KEY = os.environ.get('EMAILJS_PUBLIC_KEY', 'oZKQtMaF_awGWNYXz')  # เช่น 'abc123xyz'
+EMAILJS_SERVICE_ID = os.environ.get('EMAILJS_SERVICE_ID', 'service_iksr1ke')  # เช่น 'service_xxx'
+EMAILJS_TEMPLATE_ID = os.environ.get('EMAILJS_TEMPLATE_ID', 'template_geg387z')  # เช่น 'template_xxx'
 
 # ฟังก์ชันจำลองข้อมูล PM2.5 (ในอนาคตสามารถเชื่อมต่อกับ API จริงได้)
 def get_pm25_level(pm25_value):
@@ -41,7 +41,7 @@ def index():
 @app.route('/api/pm25', methods=['GET'])
 def get_pm25():
     # จำลองค่า PM2.5 ที่ระดับสีแดง (101-200) - ในอนาคตสามารถเชื่อมต่อกับ API จริงได้
-    pm25_value = random.randint(101, 200)
+    pm25_value = random.randint(0, 200)
     level_info = get_pm25_level(pm25_value)
     
     return jsonify({
